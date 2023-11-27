@@ -1,0 +1,150 @@
+- name: Configure the Master Jenkins  with the required Packages
+  hosts: jenkins
+  become: yes
+  tasks:
+   - name: update Packages
+     apt:
+      update_cache: yes
+
+   - name: upgrad all Packages
+     apt:
+      upgrade: yes
+
+ # install java , Jenkins , Git
+   - name: install OpedJDK 17
+     apt:
+      name: openjdk-17-jdk
+      state: present
+
+   - name: install Wget
+     apt:
+      name: wget 
+      state: present
+
+   - name: Add Jenkins repository key
+     shell: wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | apt-key add -
+
+   - name: Add Jenkins repository
+     shell: sh -c 'echo deb https://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
+
+   - name: Update package lists
+     apt:
+       update_cache: yes
+
+   - name: Install Jenkins and Git
+     apt:
+        name: "{{ item }}"
+        state: present
+     loop:
+        - jenkins
+        - git
+
+   - name: Start Jenkins service
+     systemd:
+        name: jenkins
+        state: started
+        enabled: yes
+
+#---------------------------- Install AWS CLI -----------------------------------
+   - name: Download AWS CLI zip file 
+     ansible.builtin.get_url:
+      url: "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" 
+      dest: "/tmp/awscliv2.zip"
+      mode: '0644'
+
+   - name: Extract awscli 
+     ansible.builtin.unarchive:
+      src: "/tmp/awscliv2.zip"
+      dest: "/tmp"
+      remote_src: yes
+
+   - name: install awscli
+     ansible.builtin.command:
+      cmd: "sudo /tmp/aws/install"
+
+ #---------------------------- install EKSCTL  #----------------------------
+   - name: Download EKSCTL archive
+     ansible.builtin.get_url:
+       url: "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_{{ ansible_system | lower }}_amd64.tar.gz"
+       dest: "/tmp/eksctl_{{ ansible_system | lower }}_amd64.tar.gz"
+       mode: '0644'
+
+   - name: Extract EKSCTL archive
+     ansible.builtin.unarchive:
+       src: "/tmp/eksctl_{{ ansible_system | lower }}_amd64.tar.gz"
+       dest: "/tmp"
+       remote_src: yes
+
+   
+   - name: Move eksctl to /usr/local/bin
+     ansible.builtin.command:
+       cmd: "mv /tmp/eksctl /usr/local/bin"
+       creates: /usr/local/bin/eksctl
+
+#---------------------------- install kubectl -----------------------------------
+
+   - name: Download kubectl binary
+     ansible.builtin.get_url:
+        url: "https://dl.k8s.io/release/{{ lookup('url', 'https://dl.k8s.io/release/stable.txt') }}/bin/linux/amd64/kubectl"
+        dest: "/tmp/kubectl"
+        mode: '0755'
+
+   - name: Download kubectl checksum
+     ansible.builtin.get_url:
+        url: "https://dl.k8s.io/{{ lookup('url', 'https://dl.k8s.io/release/stable.txt') }}/bin/linux/amd64/kubectl.sha256"
+        dest: "/tmp/kubectl.sha256"
+
+   - name: Verify kubectl checksum
+     ansible.builtin.command:
+        cmd: "sha256sum --check /tmp/kubectl.sha256"
+        chdir: "/tmp"
+        creates: "/tmp/kubectl"
+
+   - name: Install kubectl
+     ansible.builtin.copy:
+        src: "/tmp/kubectl"
+        dest: "/usr/local/bin/kubectl"
+        owner: root
+        group: root
+        mode: '0755'
+
+#---------------------------- Install K9s -----------------------------------
+   - name: Download k9s binary
+     ansible.builtin.get_url:
+        url: "https://github.com/derailed/k9s/releases/download/v0.25.18/k9s_Linux_x86_64.tar.gz"
+        dest: "/tmp/k9s_Linux_x86_64.tar.gz"
+        mode: '0644'
+
+   - name: Extract k9s
+     ansible.builtin.unarchive:
+        src: "/tmp/k9s_Linux_x86_64.tar.gz"
+        dest: "/tmp"
+
+   - name: Install k9s
+     ansible.builtin.copy:
+        src: "/tmp/k9s"
+        dest: "/usr/local/bin/k9s"
+        owner: root
+        group: root
+        mode: '0755'
+
+  # ----------------------------------- install Helm -----------------------------------
+
+   - name: Download Helm installation script
+     ansible.builtin.get_url:
+        url: "https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3"
+        dest: "/tmp/get_helm.sh"
+        mode: '0755'
+
+   - name: Run Helm installation script
+     ansible.builtin.command:
+        cmd: "/tmp/get_helm.sh"
+      
+     
+
+        
+
+
+      
+        
+        

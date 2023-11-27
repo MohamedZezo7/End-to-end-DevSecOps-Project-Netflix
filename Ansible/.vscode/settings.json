@@ -1,0 +1,4 @@
+{
+    "ansible.python.interpreterPath": "/bin/python3",
+    "ansibleServer.trace.server": "verbose"
+}
