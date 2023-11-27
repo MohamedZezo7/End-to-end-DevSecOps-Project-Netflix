@@ -76,7 +76,7 @@ pipeline{
         }
         stage('Deploy to Container'){
             steps{
-                
+
                 sh "docker run -d --name netflix -p 80:80 ${REGISTRY_NAME}/${REPO_NAME}:${IMAGE_TAG}"
 
             }
@@ -86,4 +86,5 @@ pipeline{
 
 
     }
+}
 }
